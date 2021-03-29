@@ -31,6 +31,12 @@
     if (symbol == nil) {
         return ;
     }
+    
+    if (symbol.type & N_EXT) {
+        self.extSymbolSize += 1;
+    } else {
+        self.locSymbolSize += 1;
+    }
     [_symbols addObject:symbol];
 }
 
@@ -38,11 +44,26 @@
 - (void)addSymbols:(NSArray<RSSymbol *> *)symbols{
     if (symbols == nil)
         return ;
+    self.locSymbolSize += symbols.count;
     [_symbols addObjectsFromArray:symbols];
 }
 
 
 - (void)generateAppendStringTable:(NSData **)stringTable appendSymbolTable:(NSData **)symbolTable{
+    
+    self.symbols = [self.symbols sortedArrayUsingComparator:^NSComparisonResult(RSSymbol * sym1, RSSymbol * sym2) {
+        if ((sym1.type & N_EXT) && (sym2.type & N_EXT)) {
+            return sym1.type > sym2.type;
+        } else if ((sym1.type & N_EXT) || (sym2.type & N_EXT)) {
+            if (sym1.type & N_EXT) {
+                return NSOrderedDescending;
+            } else {
+                return NSOrderedAscending;
+            }
+        } else {
+            return sym1.type > sym2.type;
+        }
+    }];
     
     const bool is32Bit = ! _machOFile.uses64BitABI;
     
@@ -59,25 +80,25 @@
         
         
         RSSymbol * symbol = _symbols[i];
-        if (symbol.address == 0) {
-            continue;
-        }
+//        if (symbol.address == 0) {
+//            continue;
+//        }
         
         
         if (is32Bit) {
             struct nlist * list = nlistsData.mutableBytes;
             bool isThumb = symbol.address & 1;
             list[i].n_desc = isThumb ? N_ARM_THUMB_DEF : 0;
-            list[i].n_type = N_PEXT | N_SECT;
-            list[i].n_sect = [self n_sectForAddress:symbol.address];
+            list[i].n_type = symbol.type;
+            list[i].n_sect = symbol.address ? [self n_sectForAddress:symbol.address] : 0;
             list[i].n_value = (uint32_t)symbol.address & ~ 1;
             list[i].n_un.n_strx = origin_string_table_size + (uint32)symbolNames.length;
             
         } else {
             struct nlist_64 * list = nlistsData.mutableBytes;
             list[i].n_desc =  0;
-            list[i].n_type = N_PEXT | N_SECT;
-            list[i].n_sect = [self n_sectForAddress:symbol.address];
+            list[i].n_type = symbol.type;
+            list[i].n_sect = symbol.address ? [self n_sectForAddress:symbol.address] : 0;
             list[i].n_value = symbol.address;
             list[i].n_un.n_strx = origin_string_table_size + (uint32)symbolNames.length;
         }

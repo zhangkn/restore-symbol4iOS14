@@ -14,7 +14,8 @@
 
 @property (nonatomic, weak) CDMachOFile * machOFile;
 @property (nonatomic, strong) NSMutableArray *symbols;
-
+@property (nonatomic) unsigned long locSymbolSize;
+@property (nonatomic) unsigned long extSymbolSize;
 
 - (void)addSymbol:(RSSymbol *)symbol;
 - (void)addSymbols:(NSArray<RSSymbol *> *)symbols;

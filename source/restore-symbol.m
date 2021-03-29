@@ -108,6 +108,7 @@ void restore_symbol(NSString * inpath, NSString *outpath, NSString *jsonPath, bo
         
         fprintf(stderr, "Scan OC method finish.\n");
     }
+    fprintf(stderr,"restore %d symbols\n", collector.symbols.count);
     
     
     if (jsonPath != nil && jsonPath.length != 0) {
@@ -145,6 +146,8 @@ void restore_symbol(NSString * inpath, NSString *outpath, NSString *jsonPath, bo
     uint32 origin_symbol_table_offset = machOFile.symbolTable.symoff;
     uint32 origin_symbol_table_num = machOFile.symbolTable.nsyms;
     
+    uint32 origin_dysymbol_table_locsymbol_num = machOFile.dynamicSymbolTable.dysymtab.nlocalsym;
+
     
     if (replace_restrict){
         CDLCSegment * restrict_seg = [machOFile segmentWithName:@"__RESTRICT"];
@@ -199,6 +202,10 @@ void restore_symbol(NSString * inpath, NSString *outpath, NSString *jsonPath, bo
     {
         CDLCDynamicSymbolTable *dysymtabCommand = [machOFile dynamicSymbolTable];
         struct dysymtab_command *command = (struct dysymtab_command *)((char *)outData.mutableBytes + dysymtabCommand.commandOffset);
+        command -> nlocalsym += collector.locSymbolSize;
+        command -> iextdefsym += collector.locSymbolSize;
+        command -> nextdefsym += collector.extSymbolSize;
+        command -> iundefsym += collector.locSymbolSize + collector.extSymbolSize;
         command -> indirectsymoff += increase_size_symtab;
     }
     
@@ -226,7 +233,7 @@ void restore_symbol(NSString * inpath, NSString *outpath, NSString *jsonPath, bo
     // must first insert string
     [outData replaceBytesInRange:NSMakeRange(origin_string_table_offset + origin_string_table_size , 0) withBytes:(const void *)string_table_append_data.bytes   length:increase_size_string_tab + string_table_padding];
     
-    [outData replaceBytesInRange:NSMakeRange(origin_symbol_table_offset + origin_symbol_table_num * NListSize , 0) withBytes:(const void *)symbol_table_append_data.bytes   length:increase_size_symtab];
+    [outData replaceBytesInRange:NSMakeRange(origin_symbol_table_offset + origin_dysymbol_table_locsymbol_num * NListSize , 0) withBytes:(const void *)symbol_table_append_data.bytes   length:increase_size_symtab];
     
     NSError * err = nil;
     [outData writeToFile:outpath options:NSDataWritingWithoutOverwriting error:&err];

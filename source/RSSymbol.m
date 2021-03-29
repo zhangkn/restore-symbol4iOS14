@@ -40,6 +40,15 @@
     RSSymbol * s = [RSSymbol new];
     s.name = name;
     s.address = addr;
+    s.type = N_SECT;
+    return s;
+}
+
++ (RSSymbol *)symbolWithName:(NSString *)name address:(uint64)addr type:(uint8)type{
+    RSSymbol * s = [RSSymbol new];
+    s.name = name;
+    s.address = addr;
+    s.type = type;
     return s;
 }
 @end

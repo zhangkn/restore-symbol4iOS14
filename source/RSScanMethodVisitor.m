@@ -14,6 +14,9 @@
 #import "CDOCCategory.h"
 #import "CDOCClassReference.h"
 #import "CDOCMethod.h"
+#import <mach-o/nlist.h>
+#import <mach-o/stab.h>
+
 //#import "CDTypeController.h"
 
 @interface RSScanMethodVisitor ()
@@ -52,6 +55,82 @@
 - (void)willVisitClass:(CDOCClass *)aClass;
 {
     [self setContext:aClass];
+    
+    // 这里生成类的符号，测试发现对于调用栈恢复，不是必要的
+
+    if (aClass.classAddress != 0) {
+        NSString * name = [NSString stringWithFormat:@"_OBJC_CLASS_$_%@", aClass.name];
+        RSSymbol *s = [RSSymbol symbolWithName:name address:aClass.classAddress type:(N_SECT | N_EXT)];
+        [self.collector addSymbol:s];
+
+        RSSymbol *s1 = [RSSymbol symbolWithName:name address:0 type:N_GSYM];
+        [self.collector addSymbol:s1];
+
+    }
+
+    if (aClass.classRoAddress != 0) {
+        NSString * name = [NSString stringWithFormat:@"__OBJC_CLASS_RO_$_%@", aClass.name];
+        RSSymbol *s = [RSSymbol symbolWithName:name address:aClass.classRoAddress];
+        [self.collector addSymbol:s];
+
+        RSSymbol *s1 = [RSSymbol symbolWithName:name address:aClass.classRoAddress type:N_STSYM];
+        [self.collector addSymbol:s1];
+    }
+
+    if (aClass.metaClassAddress != 0) {
+        NSString * name = [NSString stringWithFormat:@"_OBJC_METACLASS_$_%@", aClass.name];
+        RSSymbol *s = [RSSymbol symbolWithName:name address:aClass.metaClassAddress type:(N_SECT | N_EXT)];
+        [self.collector addSymbol:s];
+
+        RSSymbol *s1 = [RSSymbol symbolWithName:name address:0 type:N_GSYM];
+        [self.collector addSymbol:s1];
+    }
+
+    if (aClass.metaClassRoAddress != 0) {
+        NSString * name = [NSString stringWithFormat:@"__OBJC_METACLASS_RO_$_%@", aClass.name];
+        RSSymbol *s = [RSSymbol symbolWithName:name address:aClass.metaClassRoAddress];
+        [self.collector addSymbol:s];
+
+        RSSymbol *s1 = [RSSymbol symbolWithName:name address:aClass.metaClassRoAddress type:N_STSYM];
+        [self.collector addSymbol:s1];
+    }
+
+    if (aClass.instanceMethodsAddress != 0) {
+        NSString * name = [NSString stringWithFormat:@"__OBJC_$_INSTANCE_METHODS_%@", aClass.name];
+        RSSymbol *s = [RSSymbol symbolWithName:name address:aClass.instanceMethodsAddress];
+        [self.collector addSymbol:s];
+
+        RSSymbol *s1 = [RSSymbol symbolWithName:name address:aClass.instanceMethodsAddress type:N_STSYM];
+        [self.collector addSymbol:s1];
+    }
+
+    if (aClass.protocolsAddress != 0) {
+        NSString * name = [NSString stringWithFormat:@"__OBJC_CLASS_PROTOCOLS_$_%@", aClass.name];
+        RSSymbol *s = [RSSymbol symbolWithName:name address:aClass.protocolsAddress];
+        [self.collector addSymbol:s];
+
+        RSSymbol *s1 = [RSSymbol symbolWithName:name address:aClass.protocolsAddress type:N_STSYM];
+        [self.collector addSymbol:s1];
+    }
+
+    if (aClass.instanceIvarAddress != 0) {
+        NSString * name = [NSString stringWithFormat:@"__OBJC_$_INSTANCE_VARIABLES_%@", aClass.name];
+        RSSymbol *s = [RSSymbol symbolWithName:name address:aClass.instanceIvarAddress];
+        [self.collector addSymbol:s];
+
+        RSSymbol *s1 = [RSSymbol symbolWithName:name address:aClass.instanceIvarAddress type:N_STSYM];
+        [self.collector addSymbol:s1];
+    }
+
+    if (aClass.propertiesAddress != 0) {
+        NSString * name = [NSString stringWithFormat:@"__OBJC_$_PROP_LIST_%@", aClass.name];
+        RSSymbol *s = [RSSymbol symbolWithName:name address:aClass.propertiesAddress];
+        [self.collector addSymbol:s];
+
+        RSSymbol *s1 = [RSSymbol symbolWithName:name address:aClass.propertiesAddress type:N_STSYM];
+        [self.collector addSymbol:s1];
+    }
+    
 }
 
 
@@ -84,6 +163,9 @@
     
     [self.collector addSymbol:s];
     
+    RSSymbol *s1 = [RSSymbol symbolWithName:name address:method.address type:N_FUN];
+    [self.collector addSymbol:s1];
+    
 }
 
 - (void)visitInstanceMethod:(CDOCMethod *)method propertyState:(CDVisitorPropertyState *)propertyState;
@@ -97,6 +179,8 @@
     
     [self.collector addSymbol:s];
     
+    RSSymbol *s1 = [RSSymbol symbolWithName:name address:method.address type:N_FUN];
+    [self.collector addSymbol:s1];
 }
 
 
